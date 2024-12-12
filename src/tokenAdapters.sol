@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -156,18 +156,18 @@ contract DAITokenAdapter is CommonFunctions {
 
     uint256 constant ONE = 10 ** 27;
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
     function join(address usr, uint256 wad) external emitLog {
-        vault.move(address(this), usr, mul(ONE, wad));
+        vault.move(address(this), usr, safeMul(ONE, wad));
         dai.burn(msg.sender, wad);
     }
 
     function exit(address usr, uint256 wad) external emitLog {
         require(live == 1, "DAITokenAdapter/not-live");
-        vault.move(msg.sender, address(this), mul(ONE, wad));
+        vault.move(msg.sender, address(this), safeMul(ONE, wad));
         dai.mint(usr, wad);
     }
 }

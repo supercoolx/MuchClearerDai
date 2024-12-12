@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -53,12 +53,12 @@ contract PriceRelayer is CommonFunctions {
     // --- Math ---
     uint256 constant ONE = 10 ** 27;
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
     function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, ONE) / y;
+        z = safeMul(x, ONE) / y;
     }
 
     // --- Administration ---
@@ -84,7 +84,7 @@ contract PriceRelayer is CommonFunctions {
     function updatePrice(bytes32 cdpType) external {
         (bytes32 price, bool has) = cdpInfos[cdpType].priceOracle.getPrice();
         uint256 priceWithSafetyMargin =
-            has ? rdiv(rdiv(mul(uint256(price), 10 ** 9), targetRatio), cdpInfos[cdpType].liquidationRatio) : 0;
+            has ? rdiv(rdiv(safeMul(uint256(price), 10 ** 9), targetRatio), cdpInfos[cdpType].liquidationRatio) : 0;
         CDPEngine.file(cdpType, "spot", priceWithSafetyMargin);
         emit UpdatePrice(cdpType, price, priceWithSafetyMargin);
     }

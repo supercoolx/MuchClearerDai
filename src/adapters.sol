@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -140,18 +140,18 @@ contract DAItoTokenAdapter is CommonFunctions {
 
     uint256 constant ONE = 10 ** 27;
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
     function enableDSR(address usr, uint256 amount) external emitLog {
-        CDPEngine.move(address(this), usr, mul(ONE, amount));
+        CDPEngine.move(address(this), usr, safeMul(ONE, amount));
         dai.burn(msg.sender, amount);
     }
 
     function disableDSR(address usr, uint256 amount) external emitLog {
         require(DSRisActive, "DAItoTokenAdapter/not-DSRisActive");
-        CDPEngine.move(msg.sender, address(this), mul(ONE, amount));
+        CDPEngine.move(msg.sender, address(this), safeMul(ONE, amount));
         dai.mint(usr, amount);
     }
 }

@@ -28,7 +28,7 @@ https://docs.makerdao.com/other-documentation/system-glossary#vat-vault-engine
 
 */
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -131,33 +131,33 @@ contract CDPEngineInstance is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint256 x, int256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = x + uint256(y);
         require(y >= 0 || z <= x);
         require(y <= 0 || z >= x);
     }
 
-    function sub(uint256 x, int256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = x - uint256(y);
         require(y <= 0 || z <= x);
         require(y >= 0 || z >= x);
     }
 
-    function mul(uint256 x, int256 y) internal pure returns (int256 z) {
+    function safeMul(uint256 x, int256 y) internal pure returns (int256 z) {
         z = int256(x) * y;
         require(int256(x) >= 0);
         require(y == 0 || z / y == int256(x));
     }
 
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -205,22 +205,22 @@ contract CDPEngineInstance is CommonFunctions {
     function both add or subtract internal collateral balances. The
     balances here are not locked within vaults and cannot be ceased during liquidations. */
     function slip(bytes32 collateralType, address usr, int256 amount) external emitLog onlyOwners {
-        tokenCollateral[collateralType][usr] = add(tokenCollateral[collateralType][usr], amount);
+        tokenCollateral[collateralType][usr] = safeAdd(tokenCollateral[collateralType][usr], amount);
     }
 
     /* Public function used to transfer internal collateral balance
     of collateral type ilk within Vat from src to dst address. */
     function flux(bytes32 collateralType, address src, address dst, uint256 amount) external emitLog {
         require(wish(src, msg.sender), "CDPEngineInstance/not-allowed");
-        tokenCollateral[collateralType][src] = sub(tokenCollateral[collateralType][src], amount);
-        tokenCollateral[collateralType][dst] = add(tokenCollateral[collateralType][dst], amount);
+        tokenCollateral[collateralType][src] = safeSub(tokenCollateral[collateralType][src], amount);
+        tokenCollateral[collateralType][dst] = safeAdd(tokenCollateral[collateralType][dst], amount);
     }
 
     /* Public function used to transfer internal dai balance of user within Vat to another address. */
     function move(address src, address dst, uint256 rad) external emitLog {
         require(wish(src, msg.sender), "CDPEngineInstance/not-allowed");
-        daiBalance[src] = sub(daiBalance[src], rad);
-        daiBalance[dst] = add(daiBalance[dst], rad);
+        daiBalance[src] = safeSub(daiBalance[src], rad);
+        daiBalance[dst] = safeAdd(daiBalance[dst], rad);
     }
 
     function either(bool x, bool y) internal pure returns (bool z) {
@@ -258,9 +258,9 @@ contract CDPEngineInstance is CommonFunctions {
         /* Locked collateral and debt of a vault can be decreased even with the
         add function because their inputs are signed numbers. Total amount of debt
         issued against a collateral type is also updated. */
-        urn.lockedCollateral = add(urn.lockedCollateral, dink);
-        urn.debt = add(urn.debt, dart);
-        collateralType.debtAmount = add(collateralType.debtAmount, dart);
+        urn.lockedCollateral = safeAdd(urn.lockedCollateral, dink);
+        urn.debt = safeAdd(urn.debt, dart);
+        collateralType.debtAmount = safeAdd(collateralType.debtAmount, dart);
 
         /* The total change in debt of a vault is determined by multiplying the
         input dart with the current rate of the collateral type i.
@@ -272,9 +272,9 @@ contract CDPEngineInstance is CommonFunctions {
         Similarly, the total debt issued for the collateral type after the
         vault balances are updated is calculated by multiplying rate of
         the collateral type with the final value stored in urn,art */
-        int256 dtab = mul(collateralType.accumulatedRates, dart);
-        uint256 tab = mul(collateralType.accumulatedRates, urn.debt);
-        debt = add(debt, dtab);
+        int256 dtab = safeMul(collateralType.accumulatedRates, dart);
+        uint256 tab = safeMul(collateralType.accumulatedRates, urn.debt);
+        debt = safeAdd(debt, dtab);
 
         /* The set of actions a user can perform on a vault using frob- adding
         collateral, paying down dai debt, drawing more dai debt, etc. can
@@ -316,7 +316,7 @@ contract CDPEngineInstance is CommonFunctions {
             either(
                 dart <= 0,
                 both(
-                    mul(collateralType.debtAmount, collateralType.accumulatedRates) <= collateralType.debtCeiling,
+                    safeMul(collateralType.debtAmount, collateralType.accumulatedRates) <= collateralType.debtCeiling,
                     debt <= totalDebtCeiling
                 )
             ),
@@ -324,7 +324,7 @@ contract CDPEngineInstance is CommonFunctions {
         );
         // urn is either less risky than before, or it is safe
         require(
-            either(both(dart <= 0, dink >= 0), tab <= mul(urn.lockedCollateral, collateralType.safetyPrice)),
+            either(both(dart <= 0, dink >= 0), tab <= safeMul(urn.lockedCollateral, collateralType.safetyPrice)),
             "CDPEngineInstance/not-safe"
         );
 
@@ -343,8 +343,8 @@ contract CDPEngineInstance is CommonFunctions {
         Changes in the vault are now balanced by adding or removing collateral balance from
         address v, and updating the balance of dai on address w as well as the total sum of
         debt issued by Vat.*/
-        tokenCollateral[i][v] = sub(tokenCollateral[i][v], dink);
-        daiBalance[w] = add(daiBalance[w], dtab);
+        tokenCollateral[i][v] = safeSub(tokenCollateral[i][v], dink);
+        daiBalance[w] = safeAdd(daiBalance[w], dtab);
 
         vaults[i][u] = urn;
         collateralTypes[i] = collateralType;
@@ -362,13 +362,13 @@ contract CDPEngineInstance is CommonFunctions {
         /* Positive values of dink and dart would decrease locked collateral and
         outstanding debt amounts on the src vault and the increased by the
         same amounts in the dst vault. */
-        u.lockedCollateral = sub(u.lockedCollateral, dink);
-        u.debt = sub(u.debt, dart);
-        v.lockedCollateral = add(v.lockedCollateral, dink);
-        v.debt = add(v.debt, dart);
+        u.lockedCollateral = safeSub(u.lockedCollateral, dink);
+        u.debt = safeSub(u.debt, dart);
+        v.lockedCollateral = safeAdd(v.lockedCollateral, dink);
+        v.debt = safeAdd(v.debt, dart);
 
-        uint256 utab = mul(u.debt, i.accumulatedRates);
-        uint256 vtab = mul(v.debt, i.accumulatedRates);
+        uint256 utab = safeMul(u.debt, i.accumulatedRates);
+        uint256 vtab = safeMul(v.debt, i.accumulatedRates);
 
         // both sides consent
         /* Both vaults need to authorize the msg.sender to perform this action even if
@@ -377,8 +377,8 @@ contract CDPEngineInstance is CommonFunctions {
 
         // both sides safe
         /* Checks to ensure both the vaults remain safe after the adjustments */
-        require(utab <= mul(u.lockedCollateral, i.safetyPrice), "CDPEngineInstance/not-safe-src");
-        require(vtab <= mul(v.lockedCollateral, i.safetyPrice), "CDPEngineInstance/not-safe-dst");
+        require(utab <= safeMul(u.lockedCollateral, i.safetyPrice), "CDPEngineInstance/not-safe-src");
+        require(vtab <= safeMul(v.lockedCollateral, i.safetyPrice), "CDPEngineInstance/not-safe-dst");
 
         // both sides non-dusty
         // Checks to ensure both vaults respect the dust limit set for the collateral type.
@@ -404,17 +404,17 @@ contract CDPEngineInstance is CommonFunctions {
         /* Both locked collateral and debt of a vault can be decreased even
         with the add function because their inputs are signed numbers. Total
         amount of debt issued against a collateral type is also updated. */
-        urn.lockedCollateral = add(urn.lockedCollateral, dink);
-        urn.debt = add(urn.debt, dart);
-        collateralType.debtAmount = add(collateralType.debtAmount, dart);
+        urn.lockedCollateral = safeAdd(urn.lockedCollateral, dink);
+        urn.debt = safeAdd(urn.debt, dart);
+        collateralType.debtAmount = safeAdd(collateralType.debtAmount, dart);
 
         /* Collateral balance of address v and bad debt balance sin of
         address w are updated. Global bad debt amount vice is also updated.*/
-        int256 dtab = mul(collateralType.accumulatedRates, dart);
+        int256 dtab = safeMul(collateralType.accumulatedRates, dart);
 
-        tokenCollateral[i][v] = sub(tokenCollateral[i][v], dink);
-        badDebt[w] = sub(badDebt[w], dtab);
-        totalBadDebt = sub(totalBadDebt, dtab);
+        tokenCollateral[i][v] = safeSub(tokenCollateral[i][v], dink);
+        badDebt[w] = safeSub(badDebt[w], dtab);
+        totalBadDebt = safeSub(totalBadDebt, dtab);
     }
 
     // --- Settlement ---
@@ -427,10 +427,10 @@ contract CDPEngineInstance is CommonFunctions {
         /* heal accepts a positive number as an input. Dai balance and bad
         debt balance of the address are reduced. Total bad debt and debt
         in the system are reduced.*/
-        badDebt[u] = sub(badDebt[u], rad);
-        daiBalance[u] = sub(daiBalance[u], rad);
-        totalBadDebt = sub(totalBadDebt, rad);
-        debt = sub(debt, rad);
+        badDebt[u] = safeSub(badDebt[u], rad);
+        daiBalance[u] = safeSub(daiBalance[u], rad);
+        totalBadDebt = safeSub(totalBadDebt, rad);
+        debt = safeSub(debt, rad);
     }
 
     /* Generates dai on address u and accounted as bad debt on
@@ -439,12 +439,12 @@ contract CDPEngineInstance is CommonFunctions {
     let Vow handle the resulting bad debt in the system. No addresses/contracts
     are currently authorized to call this restricted function.*/
     function suck(address u, address v, uint256 rad) external emitLog onlyOwners {
-        badDebt[u] = add(badDebt[u], rad);
-        daiBalance[v] = add(daiBalance[v], rad);
+        badDebt[u] = safeAdd(badDebt[u], rad);
+        daiBalance[v] = safeAdd(daiBalance[v], rad);
 
         // Total debt and bad debt in the system are increased.
-        totalBadDebt = add(totalBadDebt, rad);
-        debt = add(debt, rad);
+        totalBadDebt = safeAdd(totalBadDebt, rad);
+        debt = safeAdd(debt, rad);
     }
 
     // --- Rates ---
@@ -471,12 +471,12 @@ contract CDPEngineInstance is CommonFunctions {
         debt to all its vaults simultaneously. Please note that the outstanding
         debt of a vault at all times is calculated by multiplying it's normalized
         debt value with the rate variable stored for it's collateral type.*/
-        collateralType.accumulatedRates = add(collateralType.accumulatedRates, accumulatedRates);
+        collateralType.accumulatedRates = safeAdd(collateralType.accumulatedRates, accumulatedRates);
 
         /* Dai balance of the address u and global debt are updated based on whether
         debt was collected or paid back for a collateral type. */
-        int256 rad = mul(collateralType.debtAmount, accumulatedRates);
-        daiBalance[u] = add(daiBalance[u], rad);
-        debt = add(debt, rad);
+        int256 rad = safeMul(collateralType.debtAmount, accumulatedRates);
+        daiBalance[u] = safeAdd(daiBalance[u], rad);
+        debt = safeAdd(debt, rad);
     }
 }

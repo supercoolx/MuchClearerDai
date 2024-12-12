@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -53,12 +53,12 @@ contract Oracle is CommonFunctions {
     // --- Math ---
     uint256 constant ONE = 10 ** 27;
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
     function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, ONE) / y;
+        z = safeMul(x, ONE) / y;
     }
 
     // --- Administration ---
@@ -83,7 +83,7 @@ contract Oracle is CommonFunctions {
     // --- Update value ---
     function poke(bytes32 collateralType) external {
         (bytes32 val, bool has) = collateralTypes[collateralType].pip.peek();
-        uint256 spot = has ? rdiv(rdiv(mul(uint256(val), 10 ** 9), par), collateralTypes[collateralType].mat) : 0;
+        uint256 spot = has ? rdiv(rdiv(safeMul(uint256(val), 10 ** 9), par), collateralTypes[collateralType].mat) : 0;
         vat.file(collateralType, "spot", spot);
         emit Poke(collateralType, val, spot);
     }

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -75,11 +75,11 @@ contract DebtAuction is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint48 x, uint48 y) internal pure returns (uint48 z) {
+    function safeAdd(uint48 x, uint48 y) internal pure returns (uint48 z) {
         require((z = x + y) >= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -101,7 +101,7 @@ contract DebtAuction is CommonFunctions {
         bids[id].bid = bid;
         bids[id].lot = lot;
         bids[id].guy = gal;
-        bids[id].end = add(uint48(now), tau);
+        bids[id].end = safeAdd(uint48(now), tau);
 
         emit Kick(id, lot, bid, gal);
     }
@@ -109,8 +109,8 @@ contract DebtAuction is CommonFunctions {
     function tick(uint256 id) external emitLog {
         require(bids[id].end < now, "DebtAuction/not-finished");
         require(bids[id].tic == 0, "DebtAuction/bid-already-placed");
-        bids[id].lot = mul(pad, bids[id].lot) / ONE;
-        bids[id].end = add(uint48(now), tau);
+        bids[id].lot = safeMul(pad, bids[id].lot) / ONE;
+        bids[id].end = safeAdd(uint48(now), tau);
     }
 
     function dent(uint256 id, uint256 lot, uint256 bid) external emitLog {
@@ -121,13 +121,13 @@ contract DebtAuction is CommonFunctions {
 
         require(bid == bids[id].bid, "DebtAuction/not-matching-bid");
         require(lot < bids[id].lot, "DebtAuction/lot-not-lower");
-        require(mul(beg, lot) <= mul(bids[id].lot, ONE), "DebtAuction/insufficient-decrease");
+        require(safeMul(beg, lot) <= safeMul(bids[id].lot, ONE), "DebtAuction/insufficient-decrease");
 
         vat.move(msg.sender, bids[id].guy, bid);
 
         bids[id].guy = msg.sender;
         bids[id].lot = lot;
-        bids[id].tic = add(uint48(now), ttl);
+        bids[id].tic = safeAdd(uint48(now), ttl);
     }
 
     function deal(uint256 id) external emitLog {

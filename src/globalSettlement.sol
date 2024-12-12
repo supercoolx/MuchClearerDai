@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -210,16 +210,16 @@ contract GlobalSettlement is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x + y;
         require(z >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -230,16 +230,16 @@ contract GlobalSettlement is CommonFunctions {
     uint256 constant WAD = 10 ** 18;
     uint256 constant RAY = 10 ** 27;
 
-    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, y) / RAY;
+    function rsafeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = safeMul(x, y) / RAY;
     }
 
     function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, RAY) / y;
+        z = safeMul(x, RAY) / y;
     }
 
     function wdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, WAD) / y;
+        z = safeMul(x, WAD) / y;
     }
 
     // --- Administration ---
@@ -294,7 +294,7 @@ contract GlobalSettlement is CommonFunctions {
         liquidator.yank(id);
 
         uint256 art = tab / accumulatedRates;
-        debtAmount[collateralType] = add(debtAmount[collateralType], art);
+        debtAmount[collateralType] = safeAdd(debtAmount[collateralType], art);
         require(int256(tokensForSale) >= 0 && int256(art) >= 0, "GlobalSettlement/overflow");
         CDPEngine.grab(collateralType, usr, address(this), address(debtEngine), int256(tokensForSale), int256(art));
     }
@@ -304,9 +304,9 @@ contract GlobalSettlement is CommonFunctions {
         (, uint256 accumulatedRates,,,) = CDPEngine.collateralTypes(collateralType);
         (uint256 ink, uint256 art) = CDPEngine.urns(collateralType, urn);
 
-        uint256 owe = rmul(rmul(art, accumulatedRates), tag[collateralType]);
+        uint256 owe = rsafeMul(rsafeMul(art, accumulatedRates), tag[collateralType]);
         uint256 amount = min(ink, owe);
-        gap[collateralType] = add(gap[collateralType], sub(owe, amount));
+        gap[collateralType] = safeAdd(gap[collateralType], safeSub(owe, amount));
 
         require(amount <= 2 ** 255 && art <= 2 ** 255, "GlobalSettlement/overflow");
         CDPEngine.grab(collateralType, urn, address(this), address(debtEngine), -int256(amount), -int256(art));
@@ -324,7 +324,7 @@ contract GlobalSettlement is CommonFunctions {
         require(!DSRisActive, "GlobalSettlement/still-DSRisActive");
         require(debt == 0, "GlobalSettlement/debt-not-zero");
         require(CDPEngine.dai(address(debtEngine)) == 0, "GlobalSettlement/surplus-not-zero");
-        require(now >= add(when, wait), "GlobalSettlement/wait-not-finished");
+        require(now >= safeAdd(when, wait), "GlobalSettlement/wait-not-finished");
         debt = CDPEngine.debt();
     }
 
@@ -333,20 +333,20 @@ contract GlobalSettlement is CommonFunctions {
         require(fix[collateralType] == 0, "GlobalSettlement/fix-collateralType-already-defined");
 
         (, uint256 accumulatedRates,,,) = CDPEngine.collateralTypes(collateralType);
-        uint256 amount = rmul(rmul(debtAmount[collateralType], accumulatedRates), tag[collateralType]);
-        fix[collateralType] = rdiv(mul(sub(amount, gap[collateralType]), RAY), debt);
+        uint256 amount = rsafeMul(rsafeMul(debtAmount[collateralType], accumulatedRates), tag[collateralType]);
+        fix[collateralType] = rdiv(safeMul(safeSub(amount, gap[collateralType]), RAY), debt);
     }
 
     function pack(uint256 amount) external emitLog {
         require(debt != 0, "GlobalSettlement/debt-zero");
-        CDPEngine.move(msg.sender, address(debtEngine), mul(amount, RAY));
-        bag[msg.sender] = add(bag[msg.sender], amount);
+        CDPEngine.move(msg.sender, address(debtEngine), safeMul(amount, RAY));
+        bag[msg.sender] = safeAdd(bag[msg.sender], amount);
     }
 
     function cash(bytes32 collateralType, uint256 amount) external emitLog {
         require(fix[collateralType] != 0, "GlobalSettlement/fix-collateralType-not-defined");
-        CDPEngine.flux(collateralType, address(this), msg.sender, rmul(amount, fix[collateralType]));
-        out[collateralType][msg.sender] = add(out[collateralType][msg.sender], amount);
+        CDPEngine.flux(collateralType, address(this), msg.sender, rsafeMul(amount, fix[collateralType]));
+        out[collateralType][msg.sender] = safeAdd(out[collateralType][msg.sender], amount);
         require(out[collateralType][msg.sender] <= bag[msg.sender], "GlobalSettlement/insufficient-bag-balance");
     }
 }

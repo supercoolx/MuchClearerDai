@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -72,11 +72,11 @@ contract SurplusAuction is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint48 x, uint48 y) internal pure returns (uint48 z) {
+    function safeAdd(uint48 x, uint48 y) internal pure returns (uint48 z) {
         require((z = x + y) >= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -97,7 +97,7 @@ contract SurplusAuction is CommonFunctions {
         bids[id].bid = bid;
         bids[id].lot = lot;
         bids[id].guy = msg.sender; // configurable??
-        bids[id].end = add(uint48(now), tau);
+        bids[id].end = safeAdd(uint48(now), tau);
 
         vault.move(msg.sender, address(this), lot);
 
@@ -107,7 +107,7 @@ contract SurplusAuction is CommonFunctions {
     function tick(uint256 id) external emitLog {
         require(bids[id].end < now, "SurplusAuction/not-finished");
         require(bids[id].tic == 0, "SurplusAuction/bid-already-placed");
-        bids[id].end = add(uint48(now), tau);
+        bids[id].end = safeAdd(uint48(now), tau);
     }
 
     function tend(uint256 id, uint256 lot, uint256 bid) external emitLog {
@@ -118,14 +118,14 @@ contract SurplusAuction is CommonFunctions {
 
         require(lot == bids[id].lot, "SurplusAuction/lot-not-matching");
         require(bid > bids[id].bid, "SurplusAuction/bid-not-higher");
-        require(mul(bid, ONE) >= mul(beg, bids[id].bid), "SurplusAuction/insufficient-increase");
+        require(safeMul(bid, ONE) >= safeMul(beg, bids[id].bid), "SurplusAuction/insufficient-increase");
 
         tokenCollateral.move(msg.sender, bids[id].guy, bids[id].bid);
         tokenCollateral.move(msg.sender, address(this), bid - bids[id].bid);
 
         bids[id].guy = msg.sender;
         bids[id].bid = bid;
-        bids[id].tic = add(uint48(now), ttl);
+        bids[id].tic = safeAdd(uint48(now), ttl);
     }
 
     function deal(uint256 id) external emitLog {

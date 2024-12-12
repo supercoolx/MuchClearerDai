@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -69,11 +69,11 @@ contract DebtEngine is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
@@ -105,46 +105,46 @@ contract DebtEngine is CommonFunctions {
 
     // Push to debt-queue
     function fess(uint256 tab) external emitLog onlyOwners {
-        sin[now] = add(sin[now], tab);
-        Sin = add(Sin, tab);
+        sin[now] = safeAdd(sin[now], tab);
+        Sin = safeAdd(Sin, tab);
     }
     // Pop from debt-queue
 
     function flog(uint256 era) external emitLog {
-        require(add(era, wait) <= now, "DebtEngine/wait-not-finished");
-        Sin = sub(Sin, sin[era]);
+        require(safeAdd(era, wait) <= now, "DebtEngine/wait-not-finished");
+        Sin = safeSub(Sin, sin[era]);
         sin[era] = 0;
     }
 
     // Debt settlement
     function heal(uint256 rad) external emitLog {
         require(rad <= CDPEngine.dai(address(this)), "DebtEngine/insufficient-surplus");
-        require(rad <= sub(sub(CDPEngine.sin(address(this)), Sin), Ash), "DebtEngine/insufficient-debt");
+        require(rad <= safeSub(safeSub(CDPEngine.sin(address(this)), Sin), Ash), "DebtEngine/insufficient-debt");
         CDPEngine.heal(rad);
     }
 
     function kiss(uint256 rad) external emitLog {
         require(rad <= Ash, "DebtEngine/not-enough-ash");
         require(rad <= CDPEngine.dai(address(this)), "DebtEngine/insufficient-surplus");
-        Ash = sub(Ash, rad);
+        Ash = safeSub(Ash, rad);
         CDPEngine.heal(rad);
     }
 
     // Debt auction
     function flop() external emitLog returns (uint256 id) {
-        require(sump <= sub(sub(CDPEngine.sin(address(this)), Sin), Ash), "DebtEngine/insufficient-debt");
+        require(sump <= safeSub(safeSub(CDPEngine.sin(address(this)), Sin), Ash), "DebtEngine/insufficient-debt");
         require(CDPEngine.dai(address(this)) == 0, "DebtEngine/surplus-not-zero");
-        Ash = add(Ash, sump);
+        Ash = safeAdd(Ash, sump);
         id = flopper.kick(address(this), dump, sump);
     }
     // Surplus auction
 
     function buyCollateral() external emitLog returns (uint256 id) {
         require(
-            CDPEngine.dai(address(this)) >= add(add(CDPEngine.sin(address(this)), bump), hump),
+            CDPEngine.dai(address(this)) >= safeAdd(safeAdd(CDPEngine.sin(address(this)), bump), hump),
             "DebtEngine/insufficient-surplus"
         );
-        require(sub(sub(CDPEngine.sin(address(this)), Sin), Ash) == 0, "DebtEngine/debt-not-zero");
+        require(safeSub(safeSub(CDPEngine.sin(address(this)), Sin), Ash) == 0, "DebtEngine/debt-not-zero");
         id = flapper.kick(bump, 0);
     }
 

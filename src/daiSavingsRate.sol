@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -101,19 +101,19 @@ contract DaiSavingsRateContract is CommonFunctions {
         }
     }
 
-    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, y) / ONE;
+    function rsafeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = safeMul(x, y) / ONE;
     }
 
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -138,24 +138,24 @@ contract DaiSavingsRateContract is CommonFunctions {
     // --- Savings Rate Accumulation ---
     function collectRate() external emitLog returns (uint256 tmp) {
         require(now >= timeOfLastCollectionRate, "DaiSavingsRateContract/invalid-now");
-        tmp = rmul(rpow(daiSavingsRate, now - timeOfLastCollectionRate, ONE), rateAccumulator);
-        uint256 rateAccumulator_ = sub(tmp, rateAccumulator);
+        tmp = rsafeMul(rpow(daiSavingsRate, now - timeOfLastCollectionRate, ONE), rateAccumulator);
+        uint256 rateAccumulator_ = safeSub(tmp, rateAccumulator);
         rateAccumulator = tmp;
         timeOfLastCollectionRate = now;
-        CDPEngine.suck(address(debtEngine), address(this), mul(totalSavingsRate, rateAccumulator_));
+        CDPEngine.suck(address(debtEngine), address(this), safeMul(totalSavingsRate, rateAccumulator_));
     }
 
     // --- Savings Dai Management ---
     function enableDSR(uint256 wad) external emitLog {
         require(now == timeOfLastCollectionRate, "DaiSavingsRateContract/timeOfLastCollectionRate-not-updated");
-        userSavingsBalance[msg.sender] = add(userSavingsBalance[msg.sender], wad);
-        totalSavingsRate = add(totalSavingsRate, wad);
-        CDPEngine.move(msg.sender, address(this), mul(rateAccumulator, wad));
+        userSavingsBalance[msg.sender] = safeAdd(userSavingsBalance[msg.sender], wad);
+        totalSavingsRate = safeAdd(totalSavingsRate, wad);
+        CDPEngine.move(msg.sender, address(this), safeMul(rateAccumulator, wad));
     }
 
     function disableDSR(uint256 wad) external emitLog {
-        userSavingsBalance[msg.sender] = sub(userSavingsBalance[msg.sender], wad);
-        totalSavingsRate = sub(totalSavingsRate, wad);
-        CDPEngine.move(address(this), msg.sender, mul(rateAccumulator, wad));
+        userSavingsBalance[msg.sender] = safeSub(userSavingsBalance[msg.sender], wad);
+        totalSavingsRate = safeSub(totalSavingsRate, wad);
+        CDPEngine.move(address(this), msg.sender, safeMul(rateAccumulator, wad));
     }
 }

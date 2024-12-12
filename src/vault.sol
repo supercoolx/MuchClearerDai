@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -66,33 +66,33 @@ contract Vault is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint256 x, int256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = x + uint256(y);
         require(y >= 0 || z <= x);
         require(y <= 0 || z >= x);
     }
 
-    function sub(uint256 x, int256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, int256 y) internal pure returns (uint256 z) {
         z = x - uint256(y);
         require(y <= 0 || z <= x);
         require(y >= 0 || z >= x);
     }
 
-    function mul(uint256 x, int256 y) internal pure returns (int256 z) {
+    function safeMul(uint256 x, int256 y) internal pure returns (int256 z) {
         z = int256(x) * y;
         require(int256(x) >= 0);
         require(y == 0 || z / y == int256(x));
     }
 
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -122,19 +122,19 @@ contract Vault is CommonFunctions {
 
     // --- Fungibility ---
     function slip(bytes32 collateralType, address usr, int256 wad) external emitLog onlyOwners {
-        tokenCollateral[collateralType][usr] = add(tokenCollateral[collateralType][usr], wad);
+        tokenCollateral[collateralType][usr] = safeAdd(tokenCollateral[collateralType][usr], wad);
     }
 
     function flux(bytes32 collateralType, address src, address dst, uint256 wad) external emitLog {
         require(wish(src, msg.sender), "Vault/not-allowed");
-        tokenCollateral[collateralType][src] = sub(tokenCollateral[collateralType][src], wad);
-        tokenCollateral[collateralType][dst] = add(tokenCollateral[collateralType][dst], wad);
+        tokenCollateral[collateralType][src] = safeSub(tokenCollateral[collateralType][src], wad);
+        tokenCollateral[collateralType][dst] = safeAdd(tokenCollateral[collateralType][dst], wad);
     }
 
     function move(address src, address dst, uint256 rad) external emitLog {
         require(wish(src, msg.sender), "Vault/not-allowed");
-        dai[src] = sub(dai[src], rad);
-        dai[dst] = add(dai[dst], rad);
+        dai[src] = safeSub(dai[src], rad);
+        dai[dst] = safeAdd(dai[dst], rad);
     }
 
     function either(bool x, bool y) internal pure returns (bool z) {
@@ -159,20 +159,20 @@ contract Vault is CommonFunctions {
         // collateralType has been initialised
         require(collateralType.rate != 0, "Vault/collateralType-not-init");
 
-        urn.lockedCollateral = add(urn.lockedCollateral, dink);
-        urn.normalisedDebt = add(urn.normalisedDebt, dart);
-        collateralType.TotalDebt = add(collateralType.TotalDebt, dart);
+        urn.lockedCollateral = safeAdd(urn.lockedCollateral, dink);
+        urn.normalisedDebt = safeAdd(urn.normalisedDebt, dart);
+        collateralType.TotalDebt = safeAdd(collateralType.TotalDebt, dart);
 
-        int256 dtab = mul(collateralType.rate, dart);
-        uint256 tab = mul(collateralType.rate, urn.normalisedDebt);
-        totalDaiIssued = add(totalDaiIssued, dtab);
+        int256 dtab = safeMul(collateralType.rate, dart);
+        uint256 tab = safeMul(collateralType.rate, urn.normalisedDebt);
+        totalDaiIssued = safeAdd(totalDaiIssued, dtab);
 
         // either totalDaiIssued has decreased, or totalDaiIssued ceilings are not exceeded
         require(
             either(
                 dart <= 0,
                 both(
-                    mul(collateralType.TotalDebt, collateralType.rate) <= collateralType.debtCeiling,
+                    safeMul(collateralType.TotalDebt, collateralType.rate) <= collateralType.debtCeiling,
                     totalDaiIssued <= TotalDebtCeiling
                 )
             ),
@@ -180,7 +180,7 @@ contract Vault is CommonFunctions {
         );
         // urn is either less risky than before, or it is safe
         require(
-            either(both(dart <= 0, dink >= 0), tab <= mul(urn.lockedCollateral, collateralType.maxDAIPerCollateral)),
+            either(both(dart <= 0, dink >= 0), tab <= safeMul(urn.lockedCollateral, collateralType.maxDAIPerCollateral)),
             "Vault/not-safe"
         );
 
@@ -194,8 +194,8 @@ contract Vault is CommonFunctions {
         // urn has no totalDaiIssued, or a non-dusty amount
         require(either(urn.normalisedDebt == 0, tab >= collateralType.debtFloor), "Vault/debtFloor");
 
-        tokenCollateral[i][v] = sub(tokenCollateral[i][v], dink);
-        dai[w] = add(dai[w], dtab);
+        tokenCollateral[i][v] = safeSub(tokenCollateral[i][v], dink);
+        dai[w] = safeAdd(dai[w], dtab);
 
         urns[i][u] = urn;
         collateralTypes[i] = collateralType;
@@ -207,20 +207,20 @@ contract Vault is CommonFunctions {
         Urn storage v = urns[collateralType][dst];
         CollateralType storage i = collateralTypes[collateralType];
 
-        u.lockedCollateral = sub(u.lockedCollateral, dink);
-        u.normalisedDebt = sub(u.normalisedDebt, dart);
-        v.lockedCollateral = add(v.lockedCollateral, dink);
-        v.normalisedDebt = add(v.normalisedDebt, dart);
+        u.lockedCollateral = safeSub(u.lockedCollateral, dink);
+        u.normalisedDebt = safeSub(u.normalisedDebt, dart);
+        v.lockedCollateral = safeAdd(v.lockedCollateral, dink);
+        v.normalisedDebt = safeAdd(v.normalisedDebt, dart);
 
-        uint256 utab = mul(u.normalisedDebt, i.rate);
-        uint256 vtab = mul(v.normalisedDebt, i.rate);
+        uint256 utab = safeMul(u.normalisedDebt, i.rate);
+        uint256 vtab = safeMul(v.normalisedDebt, i.rate);
 
         // both sides consent
         require(both(wish(src, msg.sender), wish(dst, msg.sender)), "Vault/not-allowed");
 
         // both sides safe
-        require(utab <= mul(u.lockedCollateral, i.maxDAIPerCollateral), "Vault/not-safe-src");
-        require(vtab <= mul(v.lockedCollateral, i.maxDAIPerCollateral), "Vault/not-safe-dst");
+        require(utab <= safeMul(u.lockedCollateral, i.maxDAIPerCollateral), "Vault/not-safe-src");
+        require(vtab <= safeMul(v.lockedCollateral, i.maxDAIPerCollateral), "Vault/not-safe-dst");
 
         // both sides non-dusty
         require(either(utab >= i.debtFloor, u.normalisedDebt == 0), "Vault/debtFloor-src");
@@ -232,40 +232,40 @@ contract Vault is CommonFunctions {
         Urn storage urn = urns[i][u];
         CollateralType storage collateralType = collateralTypes[i];
 
-        urn.lockedCollateral = add(urn.lockedCollateral, dink);
-        urn.normalisedDebt = add(urn.normalisedDebt, dart);
-        collateralType.TotalDebt = add(collateralType.TotalDebt, dart);
+        urn.lockedCollateral = safeAdd(urn.lockedCollateral, dink);
+        urn.normalisedDebt = safeAdd(urn.normalisedDebt, dart);
+        collateralType.TotalDebt = safeAdd(collateralType.TotalDebt, dart);
 
-        int256 dtab = mul(collateralType.rate, dart);
+        int256 dtab = safeMul(collateralType.rate, dart);
 
-        tokenCollateral[i][v] = sub(tokenCollateral[i][v], dink);
-        systemDebt[w] = sub(systemDebt[w], dtab);
-        totalDebtIssued = sub(totalDebtIssued, dtab);
+        tokenCollateral[i][v] = safeSub(tokenCollateral[i][v], dink);
+        systemDebt[w] = safeSub(systemDebt[w], dtab);
+        totalDebtIssued = safeSub(totalDebtIssued, dtab);
     }
 
     // --- Settlement ---
     function heal(uint256 rad) external emitLog {
         address u = msg.sender;
-        systemDebt[u] = sub(systemDebt[u], rad);
-        dai[u] = sub(dai[u], rad);
-        totalDebtIssued = sub(totalDebtIssued, rad);
-        totalDaiIssued = sub(totalDaiIssued, rad);
+        systemDebt[u] = safeSub(systemDebt[u], rad);
+        dai[u] = safeSub(dai[u], rad);
+        totalDebtIssued = safeSub(totalDebtIssued, rad);
+        totalDaiIssued = safeSub(totalDaiIssued, rad);
     }
 
     function suck(address u, address v, uint256 rad) external emitLog onlyOwners {
-        systemDebt[u] = add(systemDebt[u], rad);
-        dai[v] = add(dai[v], rad);
-        totalDebtIssued = add(totalDebtIssued, rad);
-        totalDaiIssued = add(totalDaiIssued, rad);
+        systemDebt[u] = safeAdd(systemDebt[u], rad);
+        dai[v] = safeAdd(dai[v], rad);
+        totalDebtIssued = safeAdd(totalDebtIssued, rad);
+        totalDaiIssued = safeAdd(totalDaiIssued, rad);
     }
 
     // --- Rates ---
     function fold(bytes32 i, address u, int256 rate) external emitLog onlyOwners {
         require(isLive == 1, "Vault/not-isLive");
         CollateralType storage collateralType = collateralTypes[i];
-        collateralType.rate = add(collateralType.rate, rate);
-        int256 rad = mul(collateralType.TotalDebt, rate);
-        dai[u] = add(dai[u], rad);
-        totalDaiIssued = add(totalDaiIssued, rad);
+        collateralType.rate = safeAdd(collateralType.rate, rate);
+        int256 rad = safeMul(collateralType.TotalDebt, rate);
+        dai[u] = safeAdd(dai[u], rad);
+        totalDaiIssued = safeAdd(totalDaiIssued, rad);
     }
 }

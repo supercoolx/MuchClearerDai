@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -73,11 +73,11 @@ contract CollateralAuction is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint48 x, uint48 y) internal pure returns (uint48 z) {
+    function safeAdd(uint48 x, uint48 y) internal pure returns (uint48 z) {
         require((z = x + y) >= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -101,7 +101,7 @@ contract CollateralAuction is CommonFunctions {
         bids[id].bid = bid;
         bids[id].lot = lot;
         bids[id].guy = msg.sender; // configurable??
-        bids[id].end = add(uint48(now), tau);
+        bids[id].end = safeAdd(uint48(now), tau);
         bids[id].usr = usr;
         bids[id].gal = gal;
         bids[id].tab = tab;
@@ -114,7 +114,7 @@ contract CollateralAuction is CommonFunctions {
     function tick(uint256 id) external emitLog {
         require(bids[id].end < now, "CollateralAuction/not-finished");
         require(bids[id].tic == 0, "CollateralAuction/bid-already-placed");
-        bids[id].end = add(uint48(now), tau);
+        bids[id].end = safeAdd(uint48(now), tau);
     }
 
     function tend(uint256 id, uint256 lot, uint256 bid) external emitLog {
@@ -126,7 +126,7 @@ contract CollateralAuction is CommonFunctions {
         require(bid <= bids[id].tab, "CollateralAuction/higher-than-tab");
         require(bid > bids[id].bid, "CollateralAuction/bid-not-higher");
         require(
-            mul(bid, ONE) >= mul(beg, bids[id].bid) || bid == bids[id].tab, "CollateralAuction/insufficient-increase"
+            safeMul(bid, ONE) >= safeMul(beg, bids[id].bid) || bid == bids[id].tab, "CollateralAuction/insufficient-increase"
         );
 
         vault.move(msg.sender, bids[id].guy, bids[id].bid);
@@ -134,7 +134,7 @@ contract CollateralAuction is CommonFunctions {
 
         bids[id].guy = msg.sender;
         bids[id].bid = bid;
-        bids[id].tic = add(uint48(now), ttl);
+        bids[id].tic = safeAdd(uint48(now), ttl);
     }
 
     function dent(uint256 id, uint256 lot, uint256 bid) external emitLog {
@@ -145,14 +145,14 @@ contract CollateralAuction is CommonFunctions {
         require(bid == bids[id].bid, "CollateralAuction/not-matching-bid");
         require(bid == bids[id].tab, "CollateralAuction/tend-not-finished");
         require(lot < bids[id].lot, "CollateralAuction/lot-not-lower");
-        require(mul(beg, lot) <= mul(bids[id].lot, ONE), "CollateralAuction/insufficient-decrease");
+        require(safeMul(beg, lot) <= safeMul(bids[id].lot, ONE), "CollateralAuction/insufficient-decrease");
 
         vault.move(msg.sender, bids[id].guy, bid);
         vault.flux(collateralType, address(this), bids[id].usr, bids[id].lot - lot);
 
         bids[id].guy = msg.sender;
         bids[id].lot = lot;
-        bids[id].tic = add(uint48(now), ttl);
+        bids[id].tic = safeAdd(uint48(now), ttl);
     }
 
     function deal(uint256 id) external emitLog {

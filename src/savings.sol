@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -101,19 +101,19 @@ contract Savings is CommonFunctions {
         }
     }
 
-    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, y) / ONE;
+    function rsafeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = safeMul(x, y) / ONE;
     }
 
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -138,24 +138,24 @@ contract Savings is CommonFunctions {
     // --- Savings Rate Accumulation ---
     function drip() external emitLog returns (uint256 tmp) {
         require(now >= rho, "Savings/invalid-now");
-        tmp = rmul(rpow(dsr, now - rho, ONE), chi);
-        uint256 chi_ = sub(tmp, chi);
+        tmp = rsafeMul(rpow(dsr, now - rho, ONE), chi);
+        uint256 chi_ = safeSub(tmp, chi);
         chi = tmp;
         rho = now;
-        vault.suck(address(settlement), address(this), mul(Pie, chi_));
+        vault.suck(address(settlement), address(this), safeMul(Pie, chi_));
     }
 
     // --- Savings Dai Management ---
     function join(uint256 wad) external emitLog {
         require(now == rho, "Savings/rho-not-updated");
-        pie[msg.sender] = add(pie[msg.sender], wad);
-        Pie = add(Pie, wad);
-        vault.move(msg.sender, address(this), mul(chi, wad));
+        pie[msg.sender] = safeAdd(pie[msg.sender], wad);
+        Pie = safeAdd(Pie, wad);
+        vault.move(msg.sender, address(this), safeMul(chi, wad));
     }
 
     function exit(uint256 wad) external emitLog {
-        pie[msg.sender] = sub(pie[msg.sender], wad);
-        Pie = sub(Pie, wad);
-        vault.move(address(this), msg.sender, mul(chi, wad));
+        pie[msg.sender] = safeSub(pie[msg.sender], wad);
+        Pie = safeSub(Pie, wad);
+        vault.move(address(this), msg.sender, safeMul(chi, wad));
     }
 }

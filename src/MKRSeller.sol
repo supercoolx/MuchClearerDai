@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -75,11 +75,11 @@ contract MKRSeller is CommonFunctions {
     }
 
     // --- Math ---
-    function add(uint48 x, uint48 y) internal pure returns (uint48 z) {
+    function safeAdd(uint48 x, uint48 y) internal pure returns (uint48 z) {
         require((z = x + y) >= x);
     }
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
@@ -105,7 +105,7 @@ contract MKRSeller is CommonFunctions {
         auctions[id].daiAmount = daiAmount;
         auctions[id].mkrAmount = mkrAmount;
         auctions[id].highestBidder = bidder;
-        auctions[id].endTime = add(uint48(now), auctionLength);
+        auctions[id].endTime = safeAdd(uint48(now), auctionLength);
 
         emit Kick(id, mkrAmount, daiAmount, bidder);
     }
@@ -113,8 +113,8 @@ contract MKRSeller is CommonFunctions {
     function reopenAuction(uint256 id) external emitLog {
         require(auctions[id].maxEndTime < now, "MKRSeller/not-finished");
         require(auctions[id].endTime == 0, "MKRSeller/bid-already-placed");
-        auctions[id].mkrAmount = mul(mkrAmountMultiplierOnReopen, auctions[id].mkrAmount) / ONE;
-        auctions[id].maxEndTime = add(uint48(now), auctionLength);
+        auctions[id].mkrAmount = safeMul(mkrAmountMultiplierOnReopen, auctions[id].mkrAmount) / ONE;
+        auctions[id].maxEndTime = safeAdd(uint48(now), auctionLength);
     }
 
     function bid(uint256 id, uint256 mkrAmount, uint256 daiAmount) external emitLog {
@@ -126,7 +126,7 @@ contract MKRSeller is CommonFunctions {
         require(daiAmount == auctions[id].daiAmount, "MKRSeller/not-matrateAccumulatorng-bid");
         require(mkrAmount < auctions[id].mkrAmount, "MKRSeller/mkrAmount-not-lower");
         require(
-            mul(minBidDecreaseMultiplier, mkrAmount) <= mul(auctions[id].mkrAmount, ONE),
+            safeMul(minBidDecreaseMultiplier, mkrAmount) <= safeMul(auctions[id].mkrAmount, ONE),
             "MKRSeller/insufficient-decrease"
         );
 
@@ -134,7 +134,7 @@ contract MKRSeller is CommonFunctions {
 
         auctions[id].highestBidder = msg.sender;
         auctions[id].mkrAmount = mkrAmount;
-        auctions[id].endTime = add(uint48(now), timeIncreasePerBid);
+        auctions[id].endTime = safeAdd(uint48(now), timeIncreasePerBid);
     }
 
     function finalizeAuction(uint256 id) external emitLog {

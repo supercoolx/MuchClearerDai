@@ -1,4 +1,4 @@
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -89,7 +89,7 @@ contract Jug is CommonFunctions {
 
     uint256 constant ONE = 10 ** 27;
 
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x + y;
         require(z >= x);
     }
@@ -99,7 +99,7 @@ contract Jug is CommonFunctions {
         require(int256(x) >= 0 && int256(y) >= 0);
     }
 
-    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function rsafeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x * y;
         require(y == 0 || z / y == x);
         z = z / ONE;
@@ -133,7 +133,7 @@ contract Jug is CommonFunctions {
     function collectRate(bytes32 ilk) external emitLog returns (uint256 rate) {
         require(now >= ilks[ilk].timeOfLastCollectionRate, "Jug/invalid-now");
         (, uint256 prev) = CDPEngine.ilks(ilk);
-        rate = rmul(rpow(add(base, ilks[ilk].duty), now - ilks[ilk].timeOfLastCollectionRate, ONE), prev);
+        rate = rsafeMul(rpow(safeAdd(base, ilks[ilk].duty), now - ilks[ilk].timeOfLastCollectionRate, ONE), prev);
         CDPEngine.fold(ilk, debtEngine, diff(rate, prev));
         ilks[ilk].timeOfLastCollectionRate = now;
     }

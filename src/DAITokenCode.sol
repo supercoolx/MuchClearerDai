@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -33,11 +33,11 @@ contract Dai is CommonFunctions {
     event Transfer(address indexed src, address indexed dst, uint256 amount);
 
     // --- Math ---
-    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeAdd(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x + y) >= x);
     }
 
-    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeSub(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require((z = x - y) <= x);
     }
 
@@ -68,17 +68,17 @@ contract Dai is CommonFunctions {
         require(balanceOf[src] >= amount, "Dai/insufficient-balance");
         if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
             require(allowance[src][msg.sender] >= amount, "Dai/insufficient-allowance");
-            allowance[src][msg.sender] = sub(allowance[src][msg.sender], amount);
+            allowance[src][msg.sender] = safeSub(allowance[src][msg.sender], amount);
         }
-        balanceOf[src] = sub(balanceOf[src], amount);
-        balanceOf[dst] = add(balanceOf[dst], amount);
+        balanceOf[src] = safeSub(balanceOf[src], amount);
+        balanceOf[dst] = safeAdd(balanceOf[dst], amount);
         emit Transfer(src, dst, amount);
         return true;
     }
 
     function mint(address usr, uint256 amount) external onlyOwners {
-        balanceOf[usr] = add(balanceOf[usr], amount);
-        totalSupply = add(totalSupply, amount);
+        balanceOf[usr] = safeAdd(balanceOf[usr], amount);
+        totalSupply = safeAdd(totalSupply, amount);
         emit Transfer(address(0), usr, amount);
     }
 
@@ -86,10 +86,10 @@ contract Dai is CommonFunctions {
         require(balanceOf[usr] >= amount, "Dai/insufficient-balance");
         if (usr != msg.sender && allowance[usr][msg.sender] != uint256(-1)) {
             require(allowance[usr][msg.sender] >= amount, "Dai/insufficient-allowance");
-            allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], amount);
+            allowance[usr][msg.sender] = safeSub(allowance[usr][msg.sender], amount);
         }
-        balanceOf[usr] = sub(balanceOf[usr], amount);
-        totalSupply = sub(totalSupply, amount);
+        balanceOf[usr] = safeSub(balanceOf[usr], amount);
+        totalSupply = safeSub(totalSupply, amount);
         emit Transfer(usr, address(0), amount);
     }
 

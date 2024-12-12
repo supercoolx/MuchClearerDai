@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-pragma solidity 0.5.12;
+pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
@@ -85,12 +85,12 @@ contract Liquidations is CommonFunctions {
     // --- Math ---
     uint256 constant ONE = 10 ** 27;
 
-    function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+    function safeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
         require(y == 0 || (z = x * y) / y == x);
     }
 
-    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
-        z = mul(x, y) / ONE;
+    function rsafeMul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = safeMul(x, y) / ONE;
     }
 
     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
@@ -126,24 +126,24 @@ contract Liquidations is CommonFunctions {
         (uint256 ink, uint256 art) = vault.urns(collateralType, urn);
 
         require(live == 1, "Liquidations/not-live");
-        require(spot > 0 && mul(ink, spot) < mul(art, rate), "Liquidations/not-unsafe");
+        require(spot > 0 && safeMul(ink, spot) < safeMul(art, rate), "Liquidations/not-unsafe");
 
         uint256 lot = min(ink, collateralTypes[collateralType].lump);
-        art = min(art, mul(lot, art) / ink);
+        art = min(art, safeMul(lot, art) / ink);
 
         require(lot <= 2 ** 255 && art <= 2 ** 255, "Liquidations/overflow");
         vault.grab(collateralType, urn, address(this), address(settlement), -int256(lot), -int256(art));
 
-        settlement.fess(mul(art, rate));
+        settlement.fess(safeMul(art, rate));
         id = Kicker(collateralTypes[collateralType].flip).kick({
             urn: urn,
             gal: address(settlement),
-            tab: rmul(mul(art, rate), collateralTypes[collateralType].chop),
+            tab: rsafeMul(safeMul(art, rate), collateralTypes[collateralType].chop),
             lot: lot,
             bid: 0
         });
 
-        emit Bite(collateralType, urn, lot, art, mul(art, rate), collateralTypes[collateralType].flip, id);
+        emit Bite(collateralType, urn, lot, art, safeMul(art, rate), collateralTypes[collateralType].flip, id);
     }
 
     function cage() external emitLog onlyOwners {

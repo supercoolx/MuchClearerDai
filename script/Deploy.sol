@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.5.12;
+pragma solidity 0.6.2;
 
 import {Script, console} from "forge-std/Script.sol";
 import {CDPEngineInstance} from "../src/CDPEngine.sol";
@@ -46,24 +46,19 @@ contract DeployScript is Script {
         globalSettlement = new GlobalSettlement();
         priceOracle = new PriceOracle();
         daiSavingsRateContract = new DaiSavingsRateContract(address(cdpEngineInstance));
-
-
-
-        collateralAuction = new CollateralAuction();
-
-        dai = new Dai();
+        liquidations = new Liquidations(address(vault));
+        oracle = new Oracle(address(vault));
+        priceRelayer = new PriceRelayer(address(cdpEngineInstance));
+        savings = new Savings(address(vault));
+        jug = new Jug(address(cdpEngineInstance));
+        dai = new Dai(5777);
         debtAuction = new DebtAuction(address(vault), address(dai));
+        surplusAuction = new SurplusAuction(address(vault), address(dai));
+        debtEngine = new DebtEngine(address(cdpEngineInstance), address(surplusAuction), address(debtAuction));
+        mkrSeller = new MKRSeller(address(cdpEngineInstance), address(dai));
+        collateralAuction = new CollateralAuction(address(vault), keccak256(abi.encodePacked("ETH-A")));
+        adapter = new ERC20Adapter(address(cdpEngineInstance), keccak256(abi.encodePacked("ETH-A")), address(dai));
 
-        surplusAuction = new SurplusAuction();
-        debtEngine = new DebtEngine(address(cdpEngineInstance), );
-
-        liquidations = new Liquidations();
-        mkrSeller = new MKRSeller();
-        oracle = new Oracle();
-        priceRelayer = new PriceRelayer();
-        savings = new Savings();
-        jug = new Jug();
-        adapter = new ERC20Adapter();
         vm.stopBroadcast();
     }
 }
