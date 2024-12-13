@@ -17,7 +17,7 @@ import {PriceRelayer} from "../src/PriceRelayer.sol";
 import {Savings} from "../src/savings.sol";
 import {Jug} from "../src/stabilityFees.sol";
 import {SurplusAuction} from "../src/surplusAuction.sol";
-import {ERC20Adapter} from "../src/tokenAdapters.sol";
+import {ERC20Adapter, ETHAdapter, DAITokenAdapter} from "../src/tokenAdapters.sol";
 import {Vault} from "../src/vault.sol";
 
 contract DeployScript is Script {
@@ -36,7 +36,9 @@ contract DeployScript is Script {
     Savings public savings;
     Jug public jug;
     SurplusAuction public surplusAuction;
-    ERC20Adapter public adapter;
+    ERC20Adapter public erc20Adapter;
+    ETHAdapter public ethAdapter;
+    DAITokenAdapter public daiAdapter;
     Vault public vault;
 
     function run() public {
@@ -51,13 +53,15 @@ contract DeployScript is Script {
         priceRelayer = new PriceRelayer(address(cdpEngineInstance));
         savings = new Savings(address(vault));
         jug = new Jug(address(cdpEngineInstance));
-        dai = new Dai(5777);
+        dai = new Dai(97);
         debtAuction = new DebtAuction(address(vault), address(dai));
         surplusAuction = new SurplusAuction(address(vault), address(dai));
         debtEngine = new DebtEngine(address(cdpEngineInstance), address(surplusAuction), address(debtAuction));
         mkrSeller = new MKRSeller(address(cdpEngineInstance), address(dai));
         collateralAuction = new CollateralAuction(address(vault), keccak256(abi.encodePacked("ETH-A")));
-        adapter = new ERC20Adapter(address(vault), keccak256(abi.encodePacked("ETH-A")), address(dai));
+        erc20Adapter = new ERC20Adapter(address(vault), keccak256(abi.encodePacked("ETH-A")), address(dai));
+        ethAdapter = new ETHAdapter(address(vault), keccak256(abi.encodePacked("ETH-A")));
+        daiAdapter = new DAITokenAdapter(address(vault), address(dai));
 
         vm.stopBroadcast();
     }
