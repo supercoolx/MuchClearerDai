@@ -38,7 +38,7 @@ import "./commonFunctions.sol";
 
 */
 
-contract VatLike {
+interface VatLike {
     function move(address, address, uint256) external;
     function suck(address, address, uint256) external;
 }

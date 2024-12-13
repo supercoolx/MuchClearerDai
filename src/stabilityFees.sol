@@ -2,7 +2,7 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract VatLike {
+interface VatLike {
     function ilks(bytes32)
         external
         returns (

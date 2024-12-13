@@ -19,11 +19,11 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract VaultContract {
+interface VaultContract {
     function move(address, address, uint256) external;
 }
 
-contract TokenContract {
+interface TokenContract {
     function move(address, address, uint256) external;
     function burn(address, uint256) external;
 }

@@ -19,12 +19,12 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract CDPEngineContract {
+interface CDPEngineContract {
     function move(address, address, uint256) external;
     function suck(address, address, uint256) external;
 }
 
-contract SimpleToken {
+interface SimpleToken {
     function mint(address, uint256) external;
 }
 

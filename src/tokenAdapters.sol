@@ -19,18 +19,18 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract TokenContract {
-    function decimals() public view returns (uint256);
+interface TokenContract {
+    function decimals() external view returns (uint256);
     function transfer(address, uint256) external returns (bool);
     function transferFrom(address, address, uint256) external returns (bool);
 }
 
-contract DSTokenLike {
+interface DSTokenLike {
     function mint(address, uint256) external;
     function burn(address, uint256) external;
 }
 
-contract VaultContract {
+interface VaultContract {
     function slip(bytes32, address, int256) external;
     function move(address, address, uint256) external;
 }
@@ -94,21 +94,6 @@ contract ERC20Adapter is CommonFunctions {
 }
 
 contract ETHAdapter is CommonFunctions {
-    // --- Auth ---
-    mapping(address => bool) public authorizedAccounts;
-
-    function addAuthorization(address usr) external emitLog onlyOwners {
-        authorizedAccounts[usr] = true;
-    }
-
-    function removeAuthorization(address usr) external emitLog onlyOwners {
-        authorizedAccounts[usr] = false;
-    }
-
-    modifier auth() {
-        require(authorizedAccounts[msg.sender], "ETHAdapter/not-authorized");
-        _;
-    }
 
     VaultContract public vault;
     bytes32 public collateralType;

@@ -17,11 +17,11 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract VaultContract {
+interface VaultContract {
     function file(bytes32, bytes32, uint256) external;
 }
 
-contract PipLike {
+interface PipLike {
     function peek() external returns (bytes32, bool);
 }
 

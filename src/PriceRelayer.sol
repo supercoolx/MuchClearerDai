@@ -17,11 +17,11 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract CDPEngineContract {
+interface CDPEngineContract {
     function file(bytes32, bytes32, uint256) external;
 }
 
-contract PriceOracleContract {
+interface PriceOracleContract {
     function getPrice() external returns (bytes32, bool);
 }
 

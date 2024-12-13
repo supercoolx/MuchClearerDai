@@ -57,7 +57,7 @@ contract DeployScript is Script {
         debtEngine = new DebtEngine(address(cdpEngineInstance), address(surplusAuction), address(debtAuction));
         mkrSeller = new MKRSeller(address(cdpEngineInstance), address(dai));
         collateralAuction = new CollateralAuction(address(vault), keccak256(abi.encodePacked("ETH-A")));
-        adapter = new ERC20Adapter(address(cdpEngineInstance), keccak256(abi.encodePacked("ETH-A")), address(dai));
+        adapter = new ERC20Adapter(address(vault), keccak256(abi.encodePacked("ETH-A")), address(dai));
 
         vm.stopBroadcast();
     }

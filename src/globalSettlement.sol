@@ -20,7 +20,7 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract CDPEngineContract {
+interface CDPEngineContract {
     function dai(address) external view returns (uint256);
     function collateralTypes(bytes32 collateralType)
         external
@@ -35,7 +35,7 @@ contract CDPEngineContract {
     function cage() external;
 }
 
-contract CatLike {
+interface CatLike {
     function collateralTypes(bytes32)
         external
         returns (
@@ -47,15 +47,15 @@ contract CatLike {
     function cage() external;
 }
 
-contract PotLike {
+interface PotLike {
     function cage() external;
 }
 
-contract VowLike {
+interface VowLike {
     function cage() external;
 }
 
-contract Seller {
+interface Seller {
     function bids(uint256 id)
         external
         view
@@ -72,11 +72,11 @@ contract Seller {
     function yank(uint256 id) external;
 }
 
-contract PipLike {
+interface PipLike {
     function read() external view returns (bytes32);
 }
 
-contract Spotty {
+interface Spotty {
     function par() external view returns (uint256);
     function collateralTypes(bytes32) external view returns (PipLike pip, uint256 mat);
     function cage() external;

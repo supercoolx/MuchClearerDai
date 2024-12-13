@@ -19,18 +19,18 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract SimpleToken {
-    function decimals() public view returns (uint256);
+interface SimpleToken {
+    function decimals() external view returns (uint256);
     function transfer(address, uint256) external returns (bool);
     function transferFrom(address, address, uint256) external returns (bool);
 }
 
-contract DSTokenLike {
+interface DSTokenLike {
     function mint(address, uint256) external;
     function burn(address, uint256) external;
 }
 
-contract CDPEngineContract {
+interface CDPEngineContract {
     function slip(bytes32, address, int256) external;
     function move(address, address, uint256) external;
 }

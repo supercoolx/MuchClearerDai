@@ -19,11 +19,11 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract Kicker {
-    function kick(address urn, address gal, uint256 tab, uint256 lot, uint256 bid) public returns (uint256);
+interface Kicker {
+    function kick(address urn, address gal, uint256 tab, uint256 lot, uint256 bid) external returns (uint256);
 }
 
-contract VaultContract {
+interface VaultContract {
     function collateralTypes(bytes32)
         external
         view
@@ -46,7 +46,7 @@ contract VaultContract {
     function nope(address) external;
 }
 
-contract SettlementContract {
+interface SettlementContract {
     function fess(uint256) external;
 }
 

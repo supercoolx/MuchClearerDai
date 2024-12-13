@@ -19,7 +19,7 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract VaultContract {
+interface VaultContract {
     function move(address, address, uint256) external;
     function flux(bytes32, address, address, uint256) external;
 }

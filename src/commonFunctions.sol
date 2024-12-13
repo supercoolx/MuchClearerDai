@@ -40,7 +40,7 @@ contract CommonFunctions {
         assembly {
             // log an 'anonymous' event with a constant 6 words of calldata
             // and four indexed topics: selector, caller, arg1 and arg2
-            let mark := msize
+            let mark := 0x80
             mstore(0x40, add(mark, 288)) // update free memory pointer
             mstore(mark, 0x20) // bytes type data offset
             mstore(add(mark, 0x20), 224) // bytes size (padded)
@@ -49,7 +49,7 @@ contract CommonFunctions {
                 mark,
                 288, // calldata
                 shl(224, shr(224, calldataload(0))), // msg.sig
-                caller, // msg.sender
+                caller(), // msg.sender
                 calldataload(4), // arg1
                 calldataload(36) // arg2
             )

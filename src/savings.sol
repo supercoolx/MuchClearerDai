@@ -38,7 +38,7 @@ import "./commonFunctions.sol";
 
 */
 
-contract VaultContract {
+interface VaultContract {
     function move(address, address, uint256) external;
     function suck(address, address, uint256) external;
 }

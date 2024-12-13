@@ -19,12 +19,12 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract VaultContract {
+interface VaultContract {
     function move(address, address, uint256) external;
     function suck(address, address, uint256) external;
 }
 
-contract TokenContract {
+interface TokenContract {
     function mint(address, uint256) external;
 }
 

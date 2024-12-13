@@ -19,19 +19,19 @@ pragma solidity >=0.5.12;
 
 import "./commonFunctions.sol";
 
-contract FlopLike {
+interface FlopLike {
     function kick(address daiIncomeReceiver, uint256 tokensForSale, uint256 bid) external returns (uint256);
     function cage() external;
     function DSRisActive() external returns (uint256);
 }
 
-contract FlapLike {
+interface FlapLike {
     function kick(uint256 tokensForSale, uint256 bid) external returns (uint256);
     function cage(uint256) external;
     function DSRisActive() external returns (uint256);
 }
 
-contract CDPEngineContract {
+interface CDPEngineContract {
     function dai(address) external view returns (uint256);
     function sin(address) external view returns (uint256);
     function heal(uint256) external;
